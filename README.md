@@ -1,6 +1,6 @@
 # 🧠 Applied AI Hub
 
-A serverless Progressive Web App that ranks the most-watched new videos and lists the latest posts from **237 hand-picked applied-AI sources** (220 YouTube channels + 17 written sources) across a Home page and 11 sections: Oracle AI, AI engineering, automation, agentic coding, tools and news.
+A serverless Progressive Web App that ranks the most-watched new videos and lists the latest posts from **222 hand-picked applied-AI sources** (205 YouTube channels + 17 written sources) across a Home page and 11 sections: Oracle AI, AI engineering, automation, agentic coding, tools and news.
 
 It runs on **GitHub Pages + GitHub Actions + the YouTube Data API v3** with no backend. Refreshes run on GitHub's own scheduler four times a day - see [docs/refresh-schedule.md](docs/refresh-schedule.md).
 
@@ -15,16 +15,16 @@ It runs on **GitHub Pages + GitHub Actions + the YouTube Data API v3** with no b
 | Page | Section | YouTube | Written |
 |---|---|---:|---:|
 | [oracle.html](oracle.html) | 🔴 Oracle AI Hub | 49 | 2 (links) |
-| [news.html](news.html) | 📰 News & Research | 32 | 7 |
+| [news.html](news.html) | 📰 News & Research | 31 | 7 |
 | [agents.html](agents.html) | 🤖 Agents & Automation | 27 | 1 |
-| [coding.html](coding.html) | 💻 Agentic Coding | 23 | 1 |
-| [engineering.html](engineering.html) | 🛠️ AI Engineering | 25 | 5 |
-| [enterprise.html](enterprise.html) | 🏢 Enterprise AI | 12 | - |
-| [productivity.html](productivity.html) | ⚡ AI for Professionals | 12 | - |
-| [business.html](business.html) | 🚀 Business & Startups | 10 | - |
+| [coding.html](coding.html) | 💻 Agentic Coding | 22 | 1 |
+| [engineering.html](engineering.html) | 🛠️ AI Engineering | 24 | 5 |
+| [enterprise.html](enterprise.html) | 🏢 Enterprise AI | 11 | - |
+| [productivity.html](productivity.html) | ⚡ AI for Professionals | 11 | - |
+| [business.html](business.html) | 🚀 Business & Startups | 8 | - |
 | [video.html](video.html) | 🎬 Video & Content | 12 | 1 |
-| [selfhost.html](selfhost.html) | 🖥️ Self-hosting & Local AI | 13 | - |
-| [marketing.html](marketing.html) | 📣 Marketing & Growth | 5 | - |
+| [selfhost.html](selfhost.html) | 🖥️ Self-hosting & Local AI | 8 | - |
+| [marketing.html](marketing.html) | 📣 Marketing & Growth | 2 | - |
 
 Every page has these tabs: **🎬 Long videos** (3 minutes and over), **⚡ Shorts** (under 3 minutes, including true YouTube Shorts under 60 s), **📺 By Channel**, **🔥 Topics**, and **📝 Articles** where the section has written sources. Videos are sorted by **velocity** (views per hour since publishing) by default; other sorts are views, trending and newest. The Time filter offers 1 day to 90 days (7 days by default), and there are filters for layer, language, min views and search. Every source has a **layer**: *Primary* (official/first-party), *Analysis*, or *Practitioner*. Sections with written sources get an **Articles** tab; sources with no usable RSS feed (Anthropic News, The Batch, Oracle's blogs) appear as direct links.
 
@@ -74,7 +74,7 @@ data/videos.json             data/posts.json
         git commit + push ──▶ GitHub Pages ──▶ static pages + service worker
 ```
 
-- **Quota-cheap discovery**: `playlistItems.list` on each channel's uploads playlist (1 unit) instead of `search.list` (100 units); `videos.list` batched 50 at a time; channel metadata cached for 7 days. Roughly 220 + ~50 units per run.
+- **Quota-cheap discovery**: `playlistItems.list` on each channel's uploads playlist (1 unit) instead of `search.list` (100 units); `videos.list` batched 50 at a time; channel metadata cached for 7 days. Roughly 205 + ~50 units per run.
 - **90 days of videos are kept; every page defaults to 7 days.** The Time filter offers 1 day / 3 days / 7 days / 30 days / 90 days (news-hub keeps only 24h; these channels upload a few times a week). True YouTube Shorts (under 60 s) are fetched too; only zero-length items (upcoming premieres) are dropped.
 - **Refreshed once or twice a day.** The workflow ticks four times a day because GitHub's scheduler drops some ticks; extra ticks are nearly free, since only overdue channels are scanned. Plenty for a non-news site.
 - A failed run carries existing data forward instead of blanking a section.

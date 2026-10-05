@@ -25,6 +25,17 @@ GitHub `schedule` (4x/day) -> scripts/fetch.py          -> data/videos.json
 - `layer` is Primary (official/first-party), Analysis, or Practitioner. Keep
   the three values; the Layer filter on every page depends on them.
 
+## Which channels belong
+
+Only channels whose subject is AI. Before adding one, look at its last ~25 uploads:
+at least roughly 55% should be about AI, or the channel should clearly be an AI/ML
+channel whose titles just do not use the usual keywords (StatQuest, Matt Pocock).
+General creators, homelab/networking, ad and CRM platforms, Excel tutorials, history
+or science podcasts do not belong, however popular. The Oracle section is the one
+exception in shape: its channels are Oracle-focused and `title_filter` keeps only
+their AI videos. Re-audit by comparing each channel's AI-title share over the last
+90 days from `data/videos.json`.
+
 ## Generated files - never edit by hand
 
 - `index.html` (landing page: tile grid of every page, `LANDING` in `channels.py`),
