@@ -63,6 +63,9 @@
     'cut cuts replace replaced replacing kill killed ruin ruined fix fixed fixes break broke broken save saved saves ' +
     'turns turned stay stays remember forget forgot learn learned lost found mind brain eyes').split(/\s+/).filter(Boolean));
 
+  const FRAGMENT_SHARE = 0.75; // a phrase is a fragment if this share of its videos also has a longer phrase around it
+  const INNER_OK = new Set('of for from to in on with and'.split(' '));   // stopwords allowed inside a phrase
+  const MAX_WORDS = 4;       // longest phrase: "Oracle AI Agent Studio"
   const EMOJI = /[\u{1F000}-\u{1FFFF}\u{2190}-\u{2BFF}\u{FE0F}\u{200D}]/gu;
 
   function clean(title, channel) {
@@ -75,22 +78,31 @@
     return t.replace(/https?:\/\/\S+/g, ' ').replace(/&amp;|&#39;|&quot;/g, ' ').replace(EMOJI, ' ');
   }
 
-  // [{ t: 'gpt-6', raw: 'GPT-6' }, ...]: t is the counting key (lowercase, possessive removed), raw keeps casing.
+  // Punctuation that ends a clause: a phrase never runs across it ("Dots, GPT-6.1" is two things, not "Dots GPT 6.1").
+  const BREAK = /[,;:|!?()\[\]{}"\u201c\u201d\u2014\u2013\/\u2022\u00b7\u2026\n]|\s[-\u2013\u2014]\s|\.(\s|$)/;
+
+  // [{ t: 'gpt', raw: 'GPT', seg: 0 }, ...]: t is the counting key (lowercase, possessive removed), raw keeps the
+  // casing, seg numbers the clause the token is in.
   function tokenize(title) {
     const out = [];
     const re = /[A-Za-z0-9][A-Za-z0-9.+#'\u2019-]*/g;
-    let m;
+    let m, seg = 0, prevEnd = 0;
     while ((m = re.exec(title))) {
+      if (out.length && BREAK.test(title.slice(prevEnd, m.index))) seg++;
+      prevEnd = m.index + m[0].length;
       const whole = m[0].replace(/[.'\u2019-]+$/, '');
       if (!whole) continue;
       // "GPT-6" -> GPT, 6 so it matches "GPT 6"; other hyphens ("no-code") stay inside the word
       for (const raw of whole.split(/-(?=\d)|(?<=\d)-/)) {
         if (!raw) continue;
-        out.push({ t: raw.toLowerCase().replace(/\u2019/g, "'").replace(/'s$/, ''), raw });
+        out.push({ t: raw.toLowerCase().replace(/\u2019/g, "'").replace(/'s$/, ''), raw, seg });
       }
     }
     return out;
   }
+
+  // Counting keys ignore a plural s ("MCP Servers" = "MCP Server"); display text keeps the title's own spelling.
+  const stem = t => (/^[a-z][a-z0-9.+#'-]{3,}s$/.test(t) && !/(ss|us|is|'s)$/.test(t) ? t.slice(0, -1) : t);
 
   const isNum = t => /^\d+(\.\d+)?$/.test(t);
   const isStop = t => STOP.has(t) || /^(19|20)\d\d$/.test(t) || (isNum(t) && t.length > 4);
@@ -124,7 +136,7 @@
 
   // The counting key of a phrase typed by a person (used for the rules file): lowercase content words, sorted.
   function keyOf(phrase) {
-    const content = tokenize(clean(phrase)).map(x => x.t).filter(t => !isStop(t));
+    const content = tokenize(clean(phrase)).map(x => x.t).filter(t => !isStop(t)).map(stem);
     return content.length === 1 ? content[0] : [...content].sort().join(' ');
   }
 
@@ -147,26 +159,32 @@
   }
 
   // Distinct topic candidates of one title as Map(key -> display text).
-  // 1-word keys are the word; 2-3 word keys are the sorted content words, so "muse from meta"
+  // 1-word keys are the word; 2-4 word keys are the sorted content words, so "muse from meta"
   // and "meta's muse" are the same key.
   function ngrams(title, channel, common, alias) {
     common = common || COMMON_EXTRA;
     const toks = tokenize(clean(title, channel));
     const out = new Map();
-    for (let n = 1; n <= 3; n++) {
+    for (let n = 1; n <= MAX_WORDS; n++) {
       for (let i = 0; i + n <= toks.length; i++) {
         const w = toks.slice(i, i + n);
+        if (w[0].seg !== w[n - 1].seg) continue;           // never across a comma, colon, dash ...
         const first = w[0].t, last = w[n - 1].t;
         if (isStop(first) || isStop(last) || common.has(first) || common.has(last)) continue;
+        if (n > 1 && isNum(first)) continue;   // "6 Astra" is a fragment of "GPT 6 Astra"
         if (n === 1) {
           if (first.length < 3 || isNum(first) || GENERIC.has(first)) continue;
         } else if (w.every(x => GENERIC.has(x.t) || isNum(x.t) || isStop(x.t))) continue;
-        let bad = false; // a phrase may contain one stopword inside ("state of art") but not two in a row
+        // Inside a phrase only a preposition may be a stopword ("Muse from Meta"); "Sonnet 5.5 Is 30" is not a phrase.
+        let bad = false;
+        for (let k = 1; k < n - 1; k++) if (isStop(w[k].t) && !INNER_OK.has(w[k].t)) bad = true;
         for (let k = 1; k < n; k++) if (isStop(w[k].t) && isStop(w[k - 1].t)) bad = true;
+        // A trailing number must be a version ("GPT 6", "Opus 5.5") directly after a real word.
+        if (n > 1 && isNum(last) && (!/^\d{1,2}(\.\d+)?$/.test(last) || isNum(w[n - 2].t) || isStop(w[n - 2].t))) bad = true;
         if (bad) continue;
-        const content = w.filter(x => !isStop(x.t)).map(x => x.t);
+        const content = w.filter(x => !isStop(x.t)).map(x => stem(x.t));
         if (n > 1 && (content.length < 2 || new Set(content).size < content.length)) continue;
-        const key = n === 1 ? first : [...content].sort().join(' ');
+        const key = n === 1 ? stem(first) : [...content].sort().join(' ');
         const al = alias && alias.get(key);
         const k2 = al ? al.key : key;
         if (!out.has(k2)) out.set(k2, al ? al.text : w.map(x => x.raw).join(' '));
@@ -233,32 +251,46 @@
         key: s.key, words, label: display(s), n: words.length, videos: s.videos, channels: s.channels.size,
         views: s.views, burst, isNew: hasBaseline && (bVideos === 0 || burst >= 4), ids: s.ids, _set: new Set(s.ids),
         // Rising: breadth first, boosted by novelty.   Mentions: breadth, then volume.
-        rising: s.channels.size * Math.log2(1 + burst) + 0.15 * Math.log10(1 + s.views),
+        rising: s.channels.size * (1 + Math.max(0, Math.log2(burst))) + 0.15 * Math.log10(1 + s.views),
         mentions: s.channels.size * 100 + s.videos + Math.log10(1 + s.views),
       });
     }
 
-    // Merge: a longer phrase whose videos are almost all covered by a shorter phrase it contains is a variant of that
-    // topic. It goes to the most specific such parent (fewest videos).
-    cands.sort((a, b) => a.n - b.n || b.videos - a.videos);
+    if (opts.debug) return cands;   // test hook: candidates before merging
+
+    const overlap = (a, b) => { let n = 0; for (const id of a._set) if (b._set.has(id)) n++; return n; };
+    const contains = (long, short) => short.words.every(w => long.words.includes(w));
+
+    // 1. Fragments. If nearly every video that has the shorter phrase also has a longer phrase containing it, the
+    //    shorter one is just a piece of the longer ("Astra" -> "GPT 6 Astra"): keep the longer.
+    cands.sort((x, y) => y.n - x.n || y.videos - x.videos);
     const kept = [];
     for (const c of cands) {
-      let parent = null;
-      for (const k of kept) {
-        if (k.n >= c.n || !k.words.every(w => c.words.includes(w))) continue;
-        let overlap = 0; for (const id of c._set) if (k._set.has(id)) overlap++;
-        if (overlap / c._set.size >= 0.9 && (!parent || k.videos < parent.videos)) parent = k;
-      }
-      if (parent) (parent.variants = parent.variants || []).push(c); else kept.push(c);
+      const fragment = kept.some(k => k.n > c.n && contains(k, c) && overlap(c, k) / c._set.size >= FRAGMENT_SHARE);
+      if (!fragment) kept.push(c);
     }
-    for (const k of kept) {
+
+    // 2. Rising words. A brand-new term ("Dots", "Mods") is the topic by itself and the phrases around it
+    //    ("OpenAI Dots", "ChatGPT Dots") are just context: fold them in. A long-established word ("Claude", "Gemini")
+    //    names many different things, so its phrases ("Claude Code", "Claude Opus 5.5") stay topics of their own.
+    const folded = new Set();
+    for (const c of kept) {
+      if (c.n === 1 || folded.has(c)) continue;
+      const parents = kept.filter(k => k.n < c.n && k.isNew && contains(c, k));
+      if (!parents.length) continue;
+      const parent = parents.sort((x, y) => x.videos - y.videos)[0];   // the most specific one
+      (parent.variants = parent.variants || []).push(c);
+      folded.add(c);
+    }
+    const out = kept.filter(c => !folded.has(c));
+    for (const k of out) {
       if (!k.variants) continue;
       // if a longer variant carries most of the topic, it is the better label ("Claude Mods" for "Mods")
-      const best = k.variants.filter(v => v.videos >= 0.6 * k.videos).sort((a, b) => b.videos - a.videos || b.n - a.n)[0];
+      const best = k.variants.filter(v => v.videos >= 0.6 * k.videos).sort((x, y) => y.videos - x.videos || y.n - x.n)[0];
       if (best) k.label = best.label;
-      k.variants = k.variants.sort((a, b) => b.videos - a.videos).map(v => v.label).filter(l => l !== k.label).slice(0, 3);
+      k.variants = k.variants.sort((x, y) => y.videos - x.videos).map(v => v.label).filter(l => l !== k.label).slice(0, 3);
     }
-    return kept;
+    return out;
   }
 
   function rank(list, mode, limit) {

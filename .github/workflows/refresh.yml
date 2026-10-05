@@ -92,6 +92,10 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Smoke-test Topics tab
+      - name: Topics unit tests
+        if: always()
+        run: node scripts/test_topics_unit.js
+
+      - name: Topics data check
         if: always()
         run: node scripts/check_topics.js

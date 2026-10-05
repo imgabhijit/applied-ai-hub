@@ -39,12 +39,12 @@ Two details worth knowing: YouTube's player swallows touches, so a transparent l
 Every page has a **🔥 Topics** tab that reads the titles of the videos in the selected time window (1 day to 90 days) and ranks the phrases they are about, for example "Dots", "Meta Muse", "Sonnet 5.5". It runs in the browser from `data/videos.json`; there is nothing extra to fetch. How [assets/topics.js](assets/topics.js) does it:
 
 1. **Clean** each title: drop emojis, URLs and the channel's own name; split `GPT-6` into `GPT 6`.
-2. **Tokenize** into lowercase words, skipping stopwords and clickbait filler ("insane", "tutorial", "just dropped").
-3. **Build 1-3 word phrases** that do not start or end with a filler word. Word order is ignored, so "Muse from Meta" and "Meta's Muse" are one phrase.
+2. **Tokenize** into lowercase words (possessives and plurals ignored), skipping stopwords and clickbait filler ("insane", "tutorial", "just dropped"). Each word remembers which clause of the title it is in.
+3. **Build 1-4 word phrases** inside one clause: a phrase never runs across a comma, colon, dash or `|`, never starts or ends with a filler word or starts with a bare number, and may only contain a preposition ("Muse **from** Meta"). Word order is ignored, so "Muse from Meta" and "Meta's Muse" are one phrase, and "MCP Server" = "MCP Servers".
 4. **Count per video and per channel.** A phrase needs 2+ different channels (3+ for single words, and for 30/90-day windows), so one channel's series cannot fake a trend.
 5. **Drop ordinary words.** The code learns which words are plain English (never capitalised mid-sentence, e.g. "price", "understand") from the titles themselves, plus a built-in list.
-6. **Rank.** *Rising* compares the phrase's rate in the window with its rate in the rest of the 90 days, so new buzz beats always-popular words; *Most mentioned* ranks by breadth then volume. For a 90-day window there is no "before" to compare with, so it falls back to mentions.
-7. **Merge variants** ("OpenAI Dots", "ChatGPT Dots" -> "Dots") and show the most-viewed video for each topic. Clicking a topic opens the Videos tab narrowed to it.
+6. **Keep the real multi-word topics.** A shorter phrase is a *fragment* if 75% of its videos also contain a longer phrase around it ("Astra" -> "GPT 6 Astra"), so the longer one wins. A phrase around a long-established word ("Claude Code", "Claude Opus 5.5") stays a topic of its own. Only around a brand-new word ("Dots", "Mods") are phrases folded into it as "also: OpenAI Dots, ChatGPT Dots".
+7. **Rank.** *Rising* compares the phrase's rate in the window with its rate in the rest of the 90 days, so new buzz beats always-popular words; *Most mentioned* ranks by breadth then volume. For a 90-day window there is no "before" to compare with, so it falls back to mentions. Each topic shows its most-viewed video, and clicking it opens the Videos tab narrowed to it.
 
 It runs entirely in the browser from `data/videos.json`, so it refreshes automatically whenever the GitHub Action refreshes the data. There is no model, API key or package to install.
 
@@ -53,7 +53,7 @@ It runs entirely in the browser from `data/videos.json`, so it refreshes automat
 - `ignore_topics`: phrases to hide ("open source")
 - `aliases`: merge phrases into one topic (`"grok bot": "GrokBot"`)
 
-**Safety check.** After every refresh the workflow runs `node scripts/check_topics.js`, which computes topics for every section at 7 and 30 days and fails the run (red X in the Actions tab) if the Topics tab would break, throw, or come back empty from plenty of videos. It runs after the data commit, so it never blocks a data refresh.
+**Safety checks.** After every refresh the workflow runs two checks and turns the run red (X in the Actions tab) if either fails; both run after the data commit, so they never block a data refresh. `node scripts/test_topics_unit.js` runs 29 tests on synthetic titles (tokenizing, phrases up to 4 words, "Claude Code" staying its own topic, fragments, folding, aliases, ranking). `node scripts/check_topics.js` computes topics for every section at 7 and 30 days on the real data and fails if it throws, comes back empty, or if multi-word topics collapse (the bug where every phrase was folded into a one-word parent).
 
 Try it from the terminal: `node scripts/test_topics.js agents 7 rising` (section, days, rising|mentions).
 
@@ -103,6 +103,8 @@ applied-ai-hub/
 │   ├── fetch_written.py            # RSS/Atom fetcher
 │   ├── build_pages.py              # generates index.html, all.html + the 11 section pages
 │   ├── test_topics.js              # prints top topics from the real data (Node)
+│   ├── test_topics_unit.js         # unit tests for the tokenizer/ranker (synthetic titles)
+│   ├── check_topics.js             # data check run by the workflow
 │   └── create_icons.py             # PWA icon generator
 ├── index.html                      # generated landing page (tile grid of every page)
 ├── all.html                        # generated "All Videos" page (aggregates all sections)

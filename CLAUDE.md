@@ -103,6 +103,11 @@ workflow commits the generated HTML, so never hand-edit it.
   `GENERIC` section words, `COMMON_EXTRA` ordinary words) and check with
   `node scripts/test_topics.js <section> <days> rising|mentions` on the real
   data before touching the UI. Do not add per-section hacks in `hub.js`.
+- Run `node scripts/test_topics_unit.js` after any change to `topics.js` (synthetic titles,
+  no data needed). It pins the behaviours that broke before: multi-word phrases surviving
+  next to a one-word brand ("Claude Code" vs "Claude"), phrases never crossing a comma, no
+  "X Is 30" junk, fragments replaced by the longer phrase. Add a test for every new rule.
+  `scripts/check_topics.js` is the real-data guard and both run in the workflow.
 - Tuning that does not need code goes in `data/topic_rules.json` (`ignore_words`,
   `ignore_topics`, `aliases`); prefer that over editing the word lists. The
   workflow runs `scripts/check_topics.js` after each refresh as a smoke test; keep
