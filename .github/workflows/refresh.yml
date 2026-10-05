@@ -1,0 +1,67 @@
+name: Refresh Data
+
+# Runs on GitHub's own `schedule` trigger, four times a day. GitHub treats
+# `schedule` as best-effort and drops some ticks under load (the sibling news-hub
+# project measured roughly half of them hitting), so four ticks a day is meant to
+# guarantee that at least one or two land. That is plenty for a site that is not
+# news. Extra ticks are cheap: fetch.py only calls the API for channels that are
+# overdue (see DEFAULT_CADENCE_HOURS), so a run right after a successful one
+# does almost nothing. See docs/refresh-schedule.md.
+on:
+  schedule:
+    # UTC. Minute 17 rather than :00 - the top of the hour is when GitHub's
+    # scheduler is busiest and most likely to delay or drop a run.
+    - cron: '17 0,6,12,18 * * *'
+  workflow_dispatch:        # manual "Run workflow" button in the Actions tab
+
+# Never let a manual run and a scheduled run (or two scheduled runs) overlap.
+concurrency:
+  group: refresh-data
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # needed to commit updated JSON files
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # A manually re-run workflow can start from an older commit. Sync first
+      # so the fetch and its cache use the newest generated data.
+      - name: Sync latest data
+        run: git pull --rebase origin main
+
+      - name: Fetch YouTube videos
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: python scripts/fetch.py
+
+      # Independent of the YouTube step: a feed failure must not lose the
+      # videos, and a quota failure must not lose the posts.
+      - name: Fetch written feeds
+        if: always()
+        run: python scripts/fetch_written.py
+
+      - name: Commit updated data
+        if: always()
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/videos.json data/channels_meta.json data/video_id_cache.json data/periodic_state.json data/posts.json 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "chore: refresh data"
+          # Another refresh can finish while this one is fetching. On a
+          # generated-data conflict, keep this run's newer generated data.
+          git pull --rebase -X theirs origin main
+          git push

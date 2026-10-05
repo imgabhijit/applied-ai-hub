@@ -1,0 +1,17 @@
+{
+  "name": "Applied AI Hub",
+  "short_name": "AppliedAI",
+  "description": "Top applied-AI videos and posts ranked by popularity",
+  "start_url": "/applied-ai-hub/",
+  "scope": "/applied-ai-hub/",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#7c5cff",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/applied-ai-hub/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/applied-ai-hub/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/applied-ai-hub/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/applied-ai-hub/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f1117">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px 16px; }
+
+    .back-btn { align-self: flex-start; background: none; border: none; color: #888; cursor: pointer; font-size: 0.9rem; padding: 4px 0 16px 0; }
+    .back-btn:hover { color: #fff; }
+
+    .player-container { width: 100%; max-width: clamp(900px, 72vw, 1400px); }
+
+    .thumb-container { position: relative; width: 100%; padding-top: 56.25%; background: #000; border-radius: 10px; overflow: hidden; cursor: pointer; }
+    .thumb-container img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: opacity 0.2s; }
+    .thumb-container:hover img { opacity: 0.8; }
+    .play-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    .play-btn { width: 68px; height: 68px; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: background 0.2s; }
+    .thumb-container:hover .play-btn { background: rgba(180,0,0,0.9); }
+    .play-icon { width: 0; height: 0; border-style: solid; border-width: 16px 0 16px 28px; border-color: transparent transparent transparent #fff; margin-left: 5px; }
+
+    .iframe-wrap { position: relative; width: 100%; padding-top: 56.25%; border-radius: 10px; overflow: hidden; display: none; }
+    .iframe-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+
+    .video-title  { margin-top: 14px; font-size: 1rem; line-height: 1.55; color: #e0e0e0; font-weight: 500; }
+    .video-credit { margin-top: 6px; font-size: 0.88rem; color: #f5c518; font-weight: 700; letter-spacing: 0.02em; text-align: right; }
+
+    @media (max-width: 1366px) and (max-height: 768px) {
+      body { padding: 14px 12px; }
+      .player-container { max-width: min(900px, 88vw); }
+      .back-btn { padding-bottom: 10px; }
+      .video-title { margin-top: 10px; font-size: 0.95rem; line-height: 1.35; }
+      .video-credit { margin-top: 4px; font-size: 0.82rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="player-container">
+    <button class="back-btn" onclick="history.back()">← Back</button>
+    <div class="thumb-container" id="thumbContainer" onclick="playVideo()">
+      <img id="thumbImg" src="" alt="">
+      <div class="play-overlay"><div class="play-btn"><div class="play-icon"></div></div></div>
+    </div>
+    <div class="iframe-wrap" id="iframeWrap">
+      <iframe id="videoFrame" src="" allowfullscreen allow="autoplay; encrypted-media; picture-in-picture"></iframe>
+    </div>
+    <p class="video-title" id="videoTitle"></p>
+    <p class="video-credit" id="videoCredit"></p>
+  </div>
+  <script>
+    const p = new URLSearchParams(location.search);
+    const vid   = p.get('v') || '';
+    const title = p.get('t') || '';
+    const ch    = p.get('c') || '';
+
+    document.getElementById('videoTitle').textContent = title;
+    document.title = title || 'Video Player';
+    if (ch) document.getElementById('videoCredit').textContent = 'Source: ' + ch;
+
+    if (vid) {
+      const img = document.getElementById('thumbImg');
+      img.src = `https://i.ytimg.com/vi/${vid}/maxresdefault.jpg`;
+      img.onerror = () => { img.src = `https://i.ytimg.com/vi/${vid}/hqdefault.jpg`; img.onerror = null; };
+    }
+
+    function playVideo() {
+      if (!vid) return;
+      document.getElementById('thumbContainer').style.display = 'none';
+      const wrap = document.getElementById('iframeWrap');
+      document.getElementById('videoFrame').src = `https://www.youtube.com/embed/${vid}?autoplay=1&rel=0&modestbranding=1`;
+      wrap.style.display = 'block';
+    }
+  </script>
+</body>
+</html>
