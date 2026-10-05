@@ -549,11 +549,20 @@ def main():
     else:
         print(f"[meta] Using cached metadata (updated {meta.get('last_updated', '?')})")
 
+    # Forget channels that were removed from the CSV, so their metadata does not sit in the repo forever.
+    configured = configured_channels()
+    stale = [cid for cid in meta.get("channels", {}) if cid not in configured]
+    if stale:
+        meta["channels"] = {cid: v for cid, v in meta["channels"].items() if cid in configured}
+        META_FILE.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"[meta] Dropped metadata of {len(stale)} channel(s) no longer in the CSV")
+
     meta_channels = meta.get("channels", {})
 
     # Load video ID cache and purge entries older than the ranking window
     video_cache = load_video_cache()
     video_cache = purge_video_cache(video_cache)
+    video_cache = {cid: ids for cid, ids in video_cache.items() if cid in configured}   # removed channels
 
     existing = {}
     if VIDEOS_FILE.exists():
