@@ -7,16 +7,16 @@
   const DAY = 86400;
   const TIME_WINDOWS = { '1d': DAY, '3d': 3 * DAY, '7d': 7 * DAY, '30d': 30 * DAY, '90d': 90 * DAY };
   const PAGE_SIZE = 24;
+  const SHORT_MAX = 180;   // seconds: under 3 min is the Shorts tab, 3 min and over is Long videos (the fetcher drops < 60 s)
   const TRENDING_MIN_SUBS = 5000;
   const IS_HOME = PAGE.slug === 'all';
   const SECTION_LABEL = Object.fromEntries((PAGE.sections || []).map(s => [s.slug, `${s.icon} ${s.title}`]));
 
   const params = new URLSearchParams(location.search);
   const state = {
-    tab:      params.get('tab')  || 'all',
+    tab:      params.get('tab')  || 'long',   // long | short | channels | topics | articles
     time:     params.get('time') || '7d',
-    // Home mixes huge and tiny channels, so raw views would bury everything but the biggest.
-    sort:     params.get('sort') || (PAGE.slug === 'all' ? 'trending' : 'views'),
+    sort:     params.get('sort') || 'velocity',   // views per hour since publishing
     layer:    params.get('layer') || 'all',
     lang:     'all',
     section:  'all',
@@ -83,7 +83,8 @@
   }
   function sortVideos(list) {
     const t = now();
-    const hours = v => Math.max(1, (t - v.timestamp) / 3600);
+    // +2h so a video posted minutes ago with a few hundred views does not outrank a real hit
+    const hours = v => (t - v.timestamp) / 3600 + 2;
     const key = {
       views:    v => v.view_count,
       velocity: v => v.view_count / hours(v),
@@ -101,15 +102,18 @@
       (state.lang === 'all' || v.language === state.lang) &&
       (state.section === 'all' || v._section === state.section);
   }
-  function filteredVideos() {
+  // kind: 'long' (3 min and over), 'short' (under 3 min), or null (By Channel: the Duration filter decides)
+  function filteredVideos(kind = null) {
     const since = now() - (TIME_WINDOWS[state.time] || 7 * DAY);
     const q = state.search.toLowerCase();
-    return sortVideos(videos.filter(v =>
-      v.timestamp >= since && inScope(v) &&
-      (!state.topic || state.topic.ids.has(v.video_id)) &&
-      v.view_count >= state.minViews &&
-      matchesDuration(v.duration || 0) &&
-      (!q || v.title.toLowerCase().includes(q) || v.channel_name.toLowerCase().includes(q))));
+    return sortVideos(videos.filter(v => {
+      const d = v.duration || 0;
+      return v.timestamp >= since && inScope(v) &&
+        (!state.topic || state.topic.ids.has(v.video_id)) &&
+        v.view_count >= state.minViews &&
+        (kind === 'long' ? (d >= SHORT_MAX || !d) : kind === 'short' ? (d > 0 && d < SHORT_MAX) : matchesDuration(d)) &&
+        (!q || v.title.toLowerCase().includes(q) || v.channel_name.toLowerCase().includes(q));
+    }));
   }
 
   // ── rendering ─────────────────────────────────────────────────────────────
@@ -133,13 +137,19 @@
     return `<div class="video-grid" id="${gridId}">${cards}</div>${more}`;
   }
 
-  function renderAll() {
-    const list = filteredVideos();
+  const KIND = {
+    long:  { title: 'long videos (3 min and over)', empty: 'No long videos match' },
+    short: { title: 'shorts (under 3 min)',          empty: 'No shorts match' },
+  };
+  function renderVideos(kind) {
+    const list = filteredVideos(kind);
     const chip = state.topic
       ? `<div class="topic-chip">Topic: <b>${esc(state.topic.label)}</b><button data-act="clear-topic" aria-label="Clear topic">✕</button></div>` : '';
-    $('panel-all').innerHTML = chip + (list.length
-      ? `<p class="section-label">Top ${list.length} videos · ${esc(state.time)}</p>${gridHtml(list, 'allGrid')}`
-      : empty('No videos match', 'Try a wider time window or clear a filter.'));
+    $('panel-' + kind).innerHTML = chip + (list.length
+      ? `<p class="section-label">Top ${list.length} ${KIND[kind].title} · ${esc(state.time)}</p>${gridHtml(list, kind + 'Grid')}`
+      : empty(KIND[kind].empty, 'Try a wider time window or clear a filter.'));
+    const btn = document.querySelector(`.tab-btn[data-tab="${kind}"]`);
+    if (btn) btn.textContent = `${btn.dataset.label} (${list.length})`;
   }
 
   function renderChannels() {
@@ -227,7 +237,7 @@
   }
 
   function render() {
-    renderAll(); renderChannels(); renderArticles();
+    renderVideos('long'); renderVideos('short'); renderChannels(); renderArticles();
     if (state.tab === 'topics') renderTopics();
     const channels = new Set(videos.map(v => v.channel_id)).size;
     $('metaInfo').textContent = `Refreshed: ${lastUpdated ? fmtAgo(new Date(lastUpdated).getTime() / 1000) : 'never'} | ${videos.length} videos · ${channels} channels`;
@@ -252,7 +262,8 @@
     history.replaceState(null, '', `?tab=${state.tab}&time=${state.time}&sort=${state.sort}&layer=${encodeURIComponent(state.layer)}`);
   }
   function switchTab(name) {
-    if (name === 'articles' && !PAGE.hasArticles) name = 'all';
+    if (name === 'all') name = 'long';                       // old links used ?tab=all
+    if (name === 'articles' && !PAGE.hasArticles) name = 'long';
     state.tab = name; state.channel = null;
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
@@ -295,7 +306,7 @@
     const row = t.closest('.topic-row');
     if (row) {
       const topic = shownTopics[+row.dataset.topic];
-      if (topic) { state.topic = { label: topic.label, ids: new Set(topic.ids) }; state.channel = null; switchTab('all'); }
+      if (topic) { state.topic = { label: topic.label, ids: new Set(topic.ids) }; state.channel = null; switchTab('long'); }
       return;
     }
     const chCard = t.closest('.channel-card');
