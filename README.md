@@ -26,7 +26,7 @@ It runs on **GitHub Pages + GitHub Actions + the YouTube Data API v3** with no b
 | [selfhost.html](selfhost.html) | 🖥️ Self-hosting & Local AI | 13 | - |
 | [marketing.html](marketing.html) | 📣 Marketing & Growth | 5 | - |
 
-Every page has these tabs: **🎬 Long videos** (3 minutes and over), **⚡ Shorts** (under 3 minutes), **📺 By Channel**, **🔥 Topics**, and **📝 Articles** where the section has written sources. Videos are sorted by **velocity** (views per hour since publishing) by default; other sorts are views, trending and newest. The Time filter offers 1 day to 90 days (7 days by default), and there are filters for layer, language, min views and search. Every source has a **layer**: *Primary* (official/first-party), *Analysis*, or *Practitioner*. Sections with written sources get an **Articles** tab; sources with no usable RSS feed (Anthropic News, The Batch, Oracle's blogs) appear as direct links.
+Every page has these tabs: **🎬 Long videos** (3 minutes and over), **⚡ Shorts** (under 3 minutes, including true YouTube Shorts under 60 s), **📺 By Channel**, **🔥 Topics**, and **📝 Articles** where the section has written sources. Videos are sorted by **velocity** (views per hour since publishing) by default; other sorts are views, trending and newest. The Time filter offers 1 day to 90 days (7 days by default), and there are filters for layer, language, min views and search. Every source has a **layer**: *Primary* (official/first-party), *Analysis*, or *Practitioner*. Sections with written sources get an **Articles** tab; sources with no usable RSS feed (Anthropic News, The Batch, Oracle's blogs) appear as direct links.
 
 ## Topics tab (what's buzzing)
 
@@ -69,7 +69,7 @@ data/videos.json             data/posts.json
 ```
 
 - **Quota-cheap discovery**: `playlistItems.list` on each channel's uploads playlist (1 unit) instead of `search.list` (100 units); `videos.list` batched 50 at a time; channel metadata cached for 7 days. Roughly 220 + ~50 units per run.
-- **90 days of videos are kept; every page defaults to 7 days.** The Time filter offers 1 day / 3 days / 7 days / 30 days / 90 days (news-hub keeps only 24h; these channels upload a few times a week). True YouTube Shorts (under 60 s) are not fetched; the Shorts tab holds videos from 1 to 3 minutes.
+- **90 days of videos are kept; every page defaults to 7 days.** The Time filter offers 1 day / 3 days / 7 days / 30 days / 90 days (news-hub keeps only 24h; these channels upload a few times a week). True YouTube Shorts (under 60 s) are fetched too; only zero-length items (upcoming premieres) are dropped.
 - **Refreshed once or twice a day.** The workflow ticks four times a day because GitHub's scheduler drops some ticks; extra ticks are nearly free, since only overdue channels are scanned. Plenty for a non-news site.
 - A failed run carries existing data forward instead of blanking a section.
 

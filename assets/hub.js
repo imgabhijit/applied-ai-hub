@@ -73,6 +73,9 @@
   // ── filtering & sorting ────────────────────────────────────────────────────
   function matchesDuration(d) {
     switch (state.duration) {
+      case 'under60': return d < 60;
+      case '1to2':   return d >= 60 && d < 120;
+      case '2to3':   return d >= 120 && d < 180;
       case 'over3':  return d > 180;
       case '3to15':  return d >= 180 && d < 900;
       case '15to30': return d >= 900 && d < 1800;
@@ -80,6 +83,20 @@
       case 'long':   return d >= 3600;
       default:       return true;
     }
+  }
+  // The Duration filter's options depend on the tab: Long videos start at 3 min, Shorts end at 3 min.
+  const DURATION_OPTIONS = {
+    long:     [['all', 'Any (3 min+)'], ['3to15', '3–15 min'], ['15to30', '15–30 min'], ['30to60', '30–60 min'], ['long', '1 hr+']],
+    short:    [['all', 'Any (under 3 min)'], ['under60', 'Under 60 sec'], ['1to2', '1–2 min'], ['2to3', '2–3 min']],
+    channels: [['all', 'All'], ['under60', 'Under 60 sec'], ['over3', 'Over 3 min'], ['3to15', '3–15 min'], ['15to30', '15–30 min'], ['30to60', '30–60 min'], ['long', '1 hr+']],
+  };
+  function fillDurationOptions() {
+    const opts = DURATION_OPTIONS[state.tab];
+    if (!opts) return;
+    const sel = $('durationSelect');
+    sel.innerHTML = opts.map(([v, label]) => `<option value="${v}">${label}</option>`).join('');
+    if (!opts.some(([v]) => v === state.duration)) state.duration = 'all';   // the old choice does not exist on this tab
+    sel.value = state.duration;
   }
   function sortVideos(list) {
     const t = now();
@@ -111,7 +128,8 @@
       return v.timestamp >= since && inScope(v) &&
         (!state.topic || state.topic.ids.has(v.video_id)) &&
         v.view_count >= state.minViews &&
-        (kind === 'long' ? (d >= SHORT_MAX || !d) : kind === 'short' ? (d > 0 && d < SHORT_MAX) : matchesDuration(d)) &&
+        (kind === 'long' ? (d >= SHORT_MAX || !d) : kind === 'short' ? (d > 0 && d < SHORT_MAX) : true) &&
+        (kind && kind !== state.tab ? true : matchesDuration(d)) &&   // the other tab's count ignores this tab's Duration choice
         (!q || v.title.toLowerCase().includes(q) || v.channel_name.toLowerCase().includes(q));
     }));
   }
@@ -251,7 +269,7 @@
     $('langSelect').value = state.lang;
     if (IS_HOME) $('sectionSelect').value = state.section;
     $('viewsSelect').value = String(state.minViews);
-    $('durationSelect').value = state.duration;
+    fillDurationOptions();
     $('rankSelect').value = state.rank;
     // Each control lists the tabs it applies to (data-tabs).
     document.querySelectorAll('[data-tabs]').forEach(el => {

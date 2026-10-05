@@ -46,7 +46,7 @@ VIDEOS_FILE           = DATA_DIR / "videos.json"
 CACHE_FILE            = DATA_DIR / "video_id_cache.json"
 STATE_FILE            = DATA_DIR / "periodic_state.json"
 FETCH_DAYS            = 90    # ranking window for every section; SECTION_WINDOW_DAYS can override one
-MIN_DURATION          = 60
+MIN_DURATION          = 1     # seconds; only drops zero-length items (upcoming premieres). True Shorts are kept - the pages split by length
 META_STALE_DAYS       = 7
 # View counts are refreshed for every video still inside its section's window
 # (see window_seconds()), so videos are never ranked against each other on stale
