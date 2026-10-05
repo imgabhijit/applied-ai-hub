@@ -3,59 +3,53 @@ Source registry for Applied AI Hub.
 
 data/portal_sources.csv is the single source of truth for every channel and
 written feed. This module only groups it into sections - one section per
-`track` value in the CSV - and holds the display metadata for each section.
+`track` value in the CSV - and reads the display metadata for each section from data/sections.json.
 
-To add or remove a source, edit the CSV and run `python scripts/build_pages.py`
-(the build regenerates every page).
+To add or remove a source, edit the CSV; to add or change a section, edit
+data/sections.json. Commit on GitHub: the refresh workflow rebuilds every page
+(scripts/build_pages.py) and fetches the new channels by itself.
 """
 
 import csv
+import json
 import re
 from pathlib import Path
 
 SOURCES_FILE = Path(__file__).parent.parent / "data" / "portal_sources.csv"
 
-# One entry per `track` in the CSV. Order here is the order of the dropdown
-# switcher (Home first, then these). `slug` is the page name (<slug>.html) and the
-# key used in data/videos.json and data/posts.json.
-SECTIONS = [
-    {"slug": "oracle",      "track": "Oracle AI",               "title": "Oracle AI Hub",
-     "icon": "🔴", "color": "#c74634",
-     "blurb": "OCI Generative AI, Oracle AI Agent Studio, Oracle Integration (OIC) and Fusion AI",
-     # Oracle channels mostly post non-AI topics, so only videos whose title is about AI
-     # are kept (see TITLE_FILTERS below).
-     "title_filter": "oracle_ai"},
-    {"slug": "news",        "track": "News & Research",         "title": "News & Research",
-     "icon": "📰", "color": "#e63946",
-     "blurb": "Lab announcements, model releases, research explainers and talks"},
-    {"slug": "agents",      "track": "Agents & Automation",     "title": "Agents & Automation",
-     "icon": "🤖", "color": "#3a86ff",
-     "blurb": "n8n, Make, Zapier, voice agents and no-code agent builds"},
-    {"slug": "coding",      "track": "Agentic Coding",          "title": "Agentic Coding",
-     "icon": "💻", "color": "#2dc653",
-     "blurb": "Claude Code, Cursor, Codex and AI-assisted software engineering"},
-    {"slug": "engineering", "track": "AI Engineering",          "title": "AI Engineering",
-     "icon": "🛠️", "color": "#9b59b6",
-     "blurb": "LLM apps, RAG, evals, frameworks and ML fundamentals"},
-    {"slug": "enterprise",  "track": "Enterprise AI",           "title": "Enterprise AI",
-     "icon": "🏢", "color": "#e67e22",
-     "blurb": "Copilot, Agentforce, Power Automate and agentic RPA"},
-    {"slug": "productivity", "track": "Productivity",           "title": "AI for Professionals",
-     "icon": "⚡", "color": "#f5c518",
-     "blurb": "Everyday AI workflows for office work, finance and note-taking"},
-    {"slug": "business",    "track": "Business & Startups",     "title": "Business & Startups",
-     "icon": "🚀", "color": "#16a085",
-     "blurb": "AI agencies, SaaS ideas and building a business on AI"},
-    {"slug": "video",       "track": "Video & Content",         "title": "Video & Content",
-     "icon": "🎬", "color": "#ff6b9d",
-     "blurb": "AI video, filmmaking and content generation tools"},
-    {"slug": "selfhost",    "track": "Self-hosting & Local AI", "title": "Self-hosting & Local AI",
-     "icon": "🖥️", "color": "#00b4d8",
-     "blurb": "Local LLMs, homelabs and privacy-first setups"},
-    {"slug": "marketing",   "track": "Marketing & Growth",      "title": "Marketing & Growth",
-     "icon": "📣", "color": "#8e7dff",
-     "blurb": "AI in CRM, ads and marketing platforms"},
-]
+SECTIONS_FILE = Path(__file__).parent.parent / "data" / "sections.json"
+
+# Slugs that are already pages of their own.
+RESERVED_SLUGS = {"index", "all", "player"}
+
+
+def _load_sections():
+    """The sections of the site, from data/sections.json (order = dropdown/tile order).
+
+    `slug` is the page name (<slug>.html) and the key used in data/videos.json and
+    data/posts.json; `track` must match the CSV's `track` column.
+    """
+    with SECTIONS_FILE.open(encoding="utf-8") as f:
+        sections = json.load(f)["sections"]
+    seen_slugs, seen_tracks = set(), set()
+    for s in sections:
+        missing = [k for k in ("slug", "track", "title", "icon", "color", "blurb") if not s.get(k)]
+        if missing:
+            raise ValueError(f"{SECTIONS_FILE.name}: section {s.get('slug') or s} is missing {missing}")
+        if not re.fullmatch(r"[a-z0-9_]+", s["slug"]) or s["slug"] in RESERVED_SLUGS:
+            raise ValueError(f"{SECTIONS_FILE.name}: bad slug {s['slug']!r} "
+                             f"(use lowercase letters, digits and _; not {sorted(RESERVED_SLUGS)})")
+        if not re.fullmatch(r"#[0-9a-fA-F]{6}", s["color"]):
+            raise ValueError(f"{SECTIONS_FILE.name}: {s['slug']}: color must look like #1a2b3c")
+        if s["slug"] in seen_slugs or s["track"] in seen_tracks:
+            raise ValueError(f"{SECTIONS_FILE.name}: duplicate slug or track in {s['slug']!r}")
+        seen_slugs.add(s["slug"]); seen_tracks.add(s["track"])
+        if s.get("title_filter") and s["title_filter"] not in TITLE_FILTERS:
+            raise ValueError(f"{SECTIONS_FILE.name}: {s['slug']}: unknown title_filter {s['title_filter']!r} "
+                             f"(known: {sorted(TITLE_FILTERS)})")
+    return sections
+
+
 
 # The aggregated page (all.html) is not a section: it merges every section above.
 HOME = {"slug": "all", "title": "All Videos", "icon": "🌐", "color": "#7c5cff",
@@ -90,6 +84,7 @@ def title_passes(slug, title):
     return bool(f["match"].search(f["strip"].sub(" ", title or "")))
 
 
+SECTIONS = _load_sections()
 SECTION_SLUGS = [s["slug"] for s in SECTIONS]
 # Per-section window overrides (days); none today - every section uses fetch.py's FETCH_DAYS.
 SECTION_WINDOW_DAYS = {s["slug"]: s["window_days"] for s in SECTIONS if "window_days" in s}

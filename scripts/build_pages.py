@@ -225,9 +225,20 @@ def build_page(page, is_home=False):
     (ROOT / out).write_text(with_header(html), encoding="utf-8")
 
 
+def remove_stale_pages(expected):
+    """Delete generated pages of sections that no longer exist (only files carrying our notice)."""
+    for path in ROOT.glob("*.html"):
+        if path.name in expected:
+            continue
+        if HEADER.strip() in path.read_text(encoding="utf-8")[:300]:
+            path.unlink()
+            print(f"Removed stale page {path.name}")
+
+
 if __name__ == "__main__":
     build_index()
     build_page(HOME, is_home=True)
     for section in SECTIONS:
         build_page(section)
+    remove_stale_pages({"index.html", "all.html"} | {f"{s['slug']}.html" for s in SECTIONS})
     print(f"Built index.html (landing) + all.html + {len(SECTIONS)} section pages")

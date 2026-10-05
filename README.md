@@ -83,6 +83,7 @@ applied-ai-hub/
 │   └── hub.js                      # shared page logic: filters, tabs, player, rendering
 ├── data/
 │   ├── portal_sources.csv          # SOURCE OF TRUTH for every channel and feed
+│   ├── sections.json               # the sections (page name, title, icon, colour); edit to add a section
 │   ├── videos.json                 # generated: ranked videos per section
 │   ├── posts.json                  # generated: recent written posts per section
 │   ├── channels_meta.json          # generated: uploads-playlist IDs + subscriber counts
@@ -120,15 +121,20 @@ python scripts/fetch_written.py    # -> data/posts.json (no key needed)
 python -m http.server 8000         # open http://localhost:8000
 ```
 
-### Changing sources or sections
+### Changing sources or sections (no computer needed)
 
-Edit [data/portal_sources.csv](data/portal_sources.csv) (and `SECTIONS` in [scripts/channels.py](scripts/channels.py) for a new section), then:
+Everything is edited as data on GitHub; the **Refresh Data** workflow does the rest. It runs automatically when you commit one of these files, and also four times a day.
 
-```bash
-python scripts/build_pages.py
-```
+| To do this | Edit this file (pencil icon on GitHub, then commit) |
+|---|---|
+| Add / remove / move a channel or written source | [data/portal_sources.csv](data/portal_sources.csv) (`track` decides the section) |
+| Add a new section (page) | [data/sections.json](data/sections.json): a new entry with `slug`, `track`, `title`, `icon`, `color`, `blurb`; then rows in the CSV using that `track` |
+| Remove a section | delete its entry in `sections.json` and its CSV rows; its page is deleted automatically |
+| Tune the Topics tab | [data/topic_rules.json](data/topic_rules.json) |
 
-The HTML pages are generated and committed; do not edit them by hand.
+What the workflow does after your commit: rebuilds `index.html`, `all.html` and every section page from those files (`scripts/build_pages.py`, standard library only), fetches the new channels' videos, commits the result, and Pages publishes it. A typo in `sections.json` fails the run with a readable message and leaves the published site as it was. The generated HTML pages are never edited by hand.
+
+To do the same locally: `python scripts/build_pages.py`.
 
 ## Deployment
 

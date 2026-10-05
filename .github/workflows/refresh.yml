@@ -13,6 +13,16 @@ on:
     # scheduler is busiest and most likely to delay or drop a run.
     - cron: '17 0,6,12,18 * * *'
   workflow_dispatch:        # manual "Run workflow" button in the Actions tab
+  # Editing the channel list or the sections on GitHub re-runs the build and the fetch at once, so a new
+  # channel or section shows up in minutes instead of waiting for the next tick. The workflow's own data
+  # commits do not trigger this (GitHub does not start workflows from commits made with GITHUB_TOKEN).
+  push:
+    branches: [main]
+    paths:
+      - data/portal_sources.csv
+      - data/sections.json
+      - scripts/build_pages.py
+      - scripts/channels.py
 
 # Never let a manual run and a scheduled run (or two scheduled runs) overlap.
 concurrency:
@@ -43,6 +53,11 @@ jobs:
       - name: Sync latest data
         run: git pull --rebase origin main
 
+      # Pages are generated from the CSV + sections.json, so they are rebuilt on every run. Standard library
+      # only; nothing to install, no API calls. Commits only if a page actually changed.
+      - name: Build pages
+        run: python scripts/build_pages.py
+
       - name: Fetch YouTube videos
         env:
           YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
@@ -60,6 +75,8 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/videos.json data/channels_meta.json data/video_id_cache.json data/periodic_state.json data/posts.json 2>/dev/null || true
+          # generated pages (-A also stages deletions of pages of removed sections); player.html is hand-written and unchanged
+          git add -A -- '*.html'
           git diff --staged --quiet || git commit -m "chore: refresh data"
           # Another refresh can finish while this one is fetching. On a
           # generated-data conflict, keep this run's newer generated data.

@@ -1,0 +1,94 @@
+{
+  "_help": "The sections of the site, in dropdown/tile order. Each one is a page (<slug>.html). 'track' must match the 'track' column in portal_sources.csv. Optional: 'title_filter' (a name from TITLE_FILTERS in scripts/channels.py) keeps only matching video titles; 'window_days' overrides the 90-day window. Edit here, commit, and the GitHub Action rebuilds every page.",
+  "sections": [
+    {
+      "slug": "oracle",
+      "track": "Oracle AI",
+      "title": "Oracle AI Hub",
+      "icon": "🔴",
+      "color": "#c74634",
+      "blurb": "OCI Generative AI, Oracle AI Agent Studio, Oracle Integration (OIC) and Fusion AI",
+      "title_filter": "oracle_ai"
+    },
+    {
+      "slug": "news",
+      "track": "News & Research",
+      "title": "News & Research",
+      "icon": "📰",
+      "color": "#e63946",
+      "blurb": "Lab announcements, model releases, research explainers and talks"
+    },
+    {
+      "slug": "agents",
+      "track": "Agents & Automation",
+      "title": "Agents & Automation",
+      "icon": "🤖",
+      "color": "#3a86ff",
+      "blurb": "n8n, Make, Zapier, voice agents and no-code agent builds"
+    },
+    {
+      "slug": "coding",
+      "track": "Agentic Coding",
+      "title": "Agentic Coding",
+      "icon": "💻",
+      "color": "#2dc653",
+      "blurb": "Claude Code, Cursor, Codex and AI-assisted software engineering"
+    },
+    {
+      "slug": "engineering",
+      "track": "AI Engineering",
+      "title": "AI Engineering",
+      "icon": "🛠️",
+      "color": "#9b59b6",
+      "blurb": "LLM apps, RAG, evals, frameworks and ML fundamentals"
+    },
+    {
+      "slug": "enterprise",
+      "track": "Enterprise AI",
+      "title": "Enterprise AI",
+      "icon": "🏢",
+      "color": "#e67e22",
+      "blurb": "Copilot, Agentforce, Power Automate and agentic RPA"
+    },
+    {
+      "slug": "productivity",
+      "track": "Productivity",
+      "title": "AI for Professionals",
+      "icon": "⚡",
+      "color": "#f5c518",
+      "blurb": "Everyday AI workflows for office work, finance and note-taking"
+    },
+    {
+      "slug": "business",
+      "track": "Business & Startups",
+      "title": "Business & Startups",
+      "icon": "🚀",
+      "color": "#16a085",
+      "blurb": "AI agencies, SaaS ideas and building a business on AI"
+    },
+    {
+      "slug": "video",
+      "track": "Video & Content",
+      "title": "Video & Content",
+      "icon": "🎬",
+      "color": "#ff6b9d",
+      "blurb": "AI video, filmmaking and content generation tools"
+    },
+    {
+      "slug": "selfhost",
+      "track": "Self-hosting & Local AI",
+      "title": "Self-hosting & Local AI",
+      "icon": "🖥️",
+      "color": "#00b4d8",
+      "blurb": "Local LLMs, homelabs and privacy-first setups"
+    },
+    {
+      "slug": "marketing",
+      "track": "Marketing & Growth",
+      "title": "Marketing & Growth",
+      "icon": "📣",
+      "color": "#8e7dff",
+      "blurb": "AI in CRM, ads and marketing platforms"
+    }
+  ]
+}
