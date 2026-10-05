@@ -1,7 +1,7 @@
 // Bump CACHE_NAME whenever a precached file below changes shape (renamed/added).
 // Section pages are not listed: they are cached as they are visited, so adding a
 // section never needs a change here.
-const CACHE_NAME = 'applied-ai-hub-v2';
+const CACHE_NAME = 'applied-ai-hub-v3';
 const BASE = '/applied-ai-hub/';
 const STATIC_ASSETS = [
   BASE,
@@ -43,7 +43,9 @@ self.addEventListener('fetch', e => {
   }
 
   e.respondWith(
-    fetch(e.request)
+    // cache: 'no-cache' makes the browser revalidate with the server instead of answering from its own
+    // HTTP cache (GitHub Pages allows 10 minutes), so a deploy shows up on the next load.
+    fetch(e.request, { cache: 'no-cache' })
       .then(res => {
         if (res.ok) {
           const clone = res.clone();
