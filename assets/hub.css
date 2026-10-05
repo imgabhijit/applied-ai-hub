@@ -167,3 +167,4 @@ nav { background: var(--panel); border-bottom: 2px solid var(--accent); padding:
 @keyframes svBounceUp   { 40% { transform: translateY(-3.5%); } }
 @keyframes svBounceDown { 40% { transform: translateY(3.5%); } }
 @media (prefers-reduced-motion: reduce) { .sv-stage { animation: none !important; } }
+.sv-btn.is-muted { border-color: #e63946; background: rgba(230, 57, 70, 0.35); }

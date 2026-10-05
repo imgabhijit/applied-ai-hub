@@ -30,7 +30,9 @@ Every page has these tabs: **🎬 Long videos** (3 minutes and over), **⚡ Shor
 
 ## Shorts viewer (swipe up / down)
 
-On the **⚡ Shorts** tab of every page, tapping a short opens a full-screen vertical viewer ([assets/shorts.js](assets/shorts.js)): **swipe up for the next short, swipe down for the previous one**. On desktop the same works by mouse drag, wheel, ArrowUp/ArrowDown (or K/J), with ▲ ▼ buttons; tap, click or Space plays and pauses; Esc, the ✕ button or the browser/phone Back button closes it. It walks through the tab's current list, so the Time, Sort, Layer, Language, Min views and Duration filters decide what you swipe through. The Long videos tab keeps the normal player.
+On the **⚡ Shorts** tab of every page, tapping a short opens a full-screen vertical viewer ([assets/shorts.js](assets/shorts.js)): **swipe up for the next short, swipe down for the previous one**. On desktop the same works by mouse drag, wheel, ArrowUp/ArrowDown (or K/J), with ▲ ▼ buttons; tap, click or Space plays and pauses; **M or the 🔊 button mutes and unmutes** (the choice is remembered between videos and visits); Esc, the ✕ button or the browser/phone Back button closes it. It walks through the tab's current list, so the Time, Sort, Layer, Language, Min views and Duration filters decide what you swipe through. The Long videos tab keeps the normal player.
+
+Browsers only allow autoplay *with sound* after a tap, click or key press (a mouse-wheel swipe does not count). If the player is still "unstarted" 2.5 seconds after loading, the viewer starts it muted and says why, so you never get a dead black screen; tap 🔇 to turn the sound on.
 
 Two details worth knowing: YouTube's player swallows touches, so a transparent layer over the video catches the swipes and play/pause is sent to the player with `postMessage`; and videos are swapped by replacing the iframe element, because changing its `src` adds browser-history entries and would make Back step through old videos.
 

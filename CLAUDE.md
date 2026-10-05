@@ -131,8 +131,12 @@ workflow commits the generated HTML, so never hand-edit it.
   entries and breaks the Back button. `loadFrame()` replaces the element instead.
 - Keep touch handling on the transparent `#svGesture` layer (pointer events,
   `touch-action: none`): the YouTube iframe underneath swallows touches.
+- Sound: `mute=0|1` goes in the embed URL, the live toggle is a `mute`/`unMute`
+  postMessage command, and the choice lives in `localStorage` (`shortsMuted`). The
+  autoplay-blocked fallback only fires when the player *reported* state -1/5 and the
+  user has not paused; keep that condition, or slow loads get muted by mistake.
 - Changes were tested with Playwright (phone touch swipes, mouse drag, wheel, keys,
-  Back, every page); keep that behaviour when editing.
+  Back, mute, every page); keep that behaviour when editing.
 
 ## Commands
 
