@@ -99,6 +99,18 @@ workflow commits the generated HTML, so never hand-edit it.
 - Each toolbar control in `build_pages.py` lists the tabs it applies to in
   `data-tabs`; add the new tab name there when adding a tab.
 
+## Shorts viewer
+
+- `assets/shorts.js` (`window.ShortsViewer`) is the swipe viewer; `hub.js` opens it
+  only from the Shorts tab, passing the filtered list. Its markup lives in the
+  `build_pages.py` template (`#shortsViewer`), styles in `hub.css` (`.sv-*`).
+- Never change the video by assigning `iframe.src`: it adds browser-history
+  entries and breaks the Back button. `loadFrame()` replaces the element instead.
+- Keep touch handling on the transparent `#svGesture` layer (pointer events,
+  `touch-action: none`): the YouTube iframe underneath swallows touches.
+- Changes were tested with Playwright (phone touch swipes, mouse drag, wheel, keys,
+  Back, every page); keep that behaviour when editing.
+
 ## Commands
 
 ```bash

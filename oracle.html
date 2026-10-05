@@ -75,9 +75,27 @@
   </div>
 </div>
 
+<div class="sv" id="shortsViewer" hidden role="dialog" aria-label="Shorts viewer">
+  <div class="sv-stage" id="svStage" tabindex="-1">
+    <iframe id="svFrame" src="about:blank" allow="autoplay; encrypted-media; picture-in-picture" title="Short video"></iframe>
+    <div class="sv-gesture" id="svGesture"></div>
+    <div class="sv-info"><div class="sv-title" id="svTitle"></div><div class="sv-meta" id="svMeta"></div></div>
+    <div class="sv-flash" id="svFlash"></div>
+    <div class="sv-hint" id="svHint" hidden>Swipe up for next · swipe down for previous</div>
+  </div>
+  <div class="sv-count" id="svCount"></div>
+  <button class="sv-btn sv-close" id="svClose" aria-label="Close">✕</button>
+  <div class="sv-side">
+    <button class="sv-btn" id="svUp" aria-label="Previous short">▲</button>
+    <a class="sv-btn" id="svYt" href="#" target="_blank" rel="noopener noreferrer" aria-label="Open on YouTube">↗</a>
+    <button class="sv-btn" id="svDown" aria-label="Next short">▼</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 <script>window.HUB_PAGE = {"slug": "oracle", "title": "Oracle AI Hub", "hasArticles": true, "watch": [{"name": "Oracle Cloud Infrastructure Blog", "site": "https://blogs.oracle.com/cloud-infrastructure/"}, {"name": "Oracle Fusion Insider", "site": "https://blogs.oracle.com/fusioninsider/"}]};</script>
 <script src="assets/topics.js"></script>
+<script src="assets/shorts.js"></script>
 <script src="assets/hub.js"></script>
 </body>
 </html>

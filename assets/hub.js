@@ -318,6 +318,16 @@
       return;
     }
     const card = t.closest('.video-card');
+    if (card && state.tab === 'short' && window.ShortsViewer) {
+      // Shorts tab: open the swipe viewer on the whole filtered/sorted list, starting at this card
+      const list = filteredVideos('short');
+      const i = list.findIndex(v => v.video_id === card.dataset.id);
+      if (i >= 0) {
+        ShortsViewer.open(list.map(v => ({ id: v.video_id, title: v.title, channel: v.channel_name,
+          meta: `👁 ${fmtViews(v.view_count)} · ${fmtAgo(v.timestamp)}` })), i);
+        return;
+      }
+    }
     if (card) { openPlayer(card.dataset.id, card.dataset.ch); return; }
     const play = t.closest('[data-play]');
     if (play) { openPlayer(play.dataset.play, play.dataset.ch); return; }

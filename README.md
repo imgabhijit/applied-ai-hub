@@ -28,6 +28,12 @@ It runs on **GitHub Pages + GitHub Actions + the YouTube Data API v3** with no b
 
 Every page has these tabs: **🎬 Long videos** (3 minutes and over), **⚡ Shorts** (under 3 minutes, including true YouTube Shorts under 60 s), **📺 By Channel**, **🔥 Topics**, and **📝 Articles** where the section has written sources. Videos are sorted by **velocity** (views per hour since publishing) by default; other sorts are views, trending and newest. The Time filter offers 1 day to 90 days (7 days by default), and there are filters for layer, language, min views and search. Every source has a **layer**: *Primary* (official/first-party), *Analysis*, or *Practitioner*. Sections with written sources get an **Articles** tab; sources with no usable RSS feed (Anthropic News, The Batch, Oracle's blogs) appear as direct links.
 
+## Shorts viewer (swipe up / down)
+
+On the **⚡ Shorts** tab of every page, tapping a short opens a full-screen vertical viewer ([assets/shorts.js](assets/shorts.js)): **swipe up for the next short, swipe down for the previous one**. On desktop the same works by mouse drag, wheel, ArrowUp/ArrowDown (or K/J), with ▲ ▼ buttons; tap, click or Space plays and pauses; Esc, the ✕ button or the browser/phone Back button closes it. It walks through the tab's current list, so the Time, Sort, Layer, Language, Min views and Duration filters decide what you swipe through. The Long videos tab keeps the normal player.
+
+Two details worth knowing: YouTube's player swallows touches, so a transparent layer over the video catches the swipes and play/pause is sent to the player with `postMessage`; and videos are swapped by replacing the iframe element, because changing its `src` adds browser-history entries and would make Back step through old videos.
+
 ## Topics tab (what's buzzing)
 
 Every page has a **🔥 Topics** tab that reads the titles of the videos in the selected time window (1 day to 90 days) and ranks the phrases they are about, for example "Dots", "Meta Muse", "Sonnet 5.5". It runs in the browser from `data/videos.json`; there is nothing extra to fetch. How [assets/topics.js](assets/topics.js) does it:
