@@ -25,6 +25,21 @@ successful one does almost nothing and uses almost no YouTube quota. If a tick i
 dropped, the next one finds the channels overdue and scans them. Quota stays at
 roughly 300 units per real scan, so about 600 a day.
 
+## Quiet runs do not commit
+
+Most ticks find nothing new (channels are only scanned when overdue), yet every run rewrites a few
+timestamps. Committing those would start a GitHub Pages deployment every time, and a second commit a few
+seconds later would cancel it. So after fetching, the workflow runs `scripts/data_changed.py`: it ignores the
+noise (the `last_updated` / `last_run` timestamps, the rotating `section_offset`, the daily cache purge) and
+**commits only when something real changed** - a view count, a new video or post, a new scan time, channel
+metadata, or a rebuilt page. A quiet run ends with "nothing worth committing", creates no commit and triggers
+no deployment. When anything is unclear (a crash, bad JSON) it commits, because a needless commit is
+harmless and a skipped real change is not. `scripts/test_data_changed.py` pins 19 such cases and runs in
+the workflow.
+
+Side effect: the "Refreshed: ... ago" line on the pages shows when data last really changed, not when the
+last tick ran.
+
 ## One-time setup
 
 1. Add the `YOUTUBE_API_KEY` repository secret: Settings -> Secrets and variables

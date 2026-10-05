@@ -69,19 +69,31 @@ jobs:
         if: always()
         run: python scripts/fetch_written.py
 
+      # Every run rewrites a few timestamps, so a plain "git diff" is never empty and every run would commit - and
+      # every commit starts a GitHub Pages deployment that the next commit then cancels. scripts/data_changed.py
+      # ignores that noise: it commits only when something real changed (a view count, a new video or post, a scan
+      # time, channel metadata, a rebuilt page). When unsure it commits.
       - name: Commit updated data
         if: always()
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/videos.json data/channels_meta.json data/video_id_cache.json data/periodic_state.json data/posts.json 2>/dev/null || true
-          # generated pages (-A also stages deletions of pages of removed sections); player.html is hand-written and unchanged
-          git add -A -- '*.html'
-          git diff --staged --quiet || git commit -m "chore: refresh data"
-          # Another refresh can finish while this one is fetching. On a
-          # generated-data conflict, keep this run's newer generated data.
-          git pull --rebase -X theirs origin main
-          git push
+          # exit code 10 means "only noise"; 0 means a real change; anything else (a crash) also commits
+          code=0
+          python scripts/data_changed.py || code=$?
+          if [ "$code" -ne 10 ]; then
+            git add data/videos.json data/channels_meta.json data/video_id_cache.json data/periodic_state.json data/posts.json 2>/dev/null || true
+            # generated pages (-A also stages deletions of pages of removed sections); player.html is hand-written and unchanged
+            git add -A -- '*.html'
+            git diff --staged --quiet || git commit -m "chore: refresh data"
+            # Another refresh can finish while this one is fetching. On a
+            # generated-data conflict, keep this run's newer generated data.
+            git pull --rebase -X theirs origin main
+            git push
+          else
+            # Throw the noise away so the working tree matches HEAD again (the checks below read it).
+            git checkout -- data/videos.json data/posts.json data/periodic_state.json data/video_id_cache.json data/channels_meta.json
+          fi
 
       # Runs after the data is committed, so a topics problem can never block a data
       # refresh - but it turns the run red so a broken Topics tab does not go unnoticed.
@@ -99,3 +111,7 @@ jobs:
       - name: Topics data check
         if: always()
         run: node scripts/check_topics.js
+
+      - name: Data-change check tests
+        if: always()
+        run: python scripts/test_data_changed.py

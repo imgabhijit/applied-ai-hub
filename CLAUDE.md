@@ -59,6 +59,13 @@ or `channels.py`; it generates the new page and deletes the page of a removed
 section. No `sw.js` change is needed (section pages are cached as visited). The
 workflow commits the generated HTML, so never hand-edit it.
 
+## Commit step
+
+- The workflow commits only when `scripts/data_changed.py` says something real changed
+  (exit 10 = only noise = skip; any other code = commit). If you add a new generated
+  data file or a new volatile field, update `NOISE_KEYS` there and add a case to
+  `scripts/test_data_changed.py`; never make "skip" the default on error.
+
 ## Fetcher rules
 
 - YouTube quota is 10,000 units/day. Discover videos with `playlistItems.list`

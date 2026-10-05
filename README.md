@@ -105,6 +105,8 @@ applied-ai-hub/
 │   ├── test_topics.js              # prints top topics from the real data (Node)
 │   ├── test_topics_unit.js         # unit tests for the tokenizer/ranker (synthetic titles)
 │   ├── check_topics.js             # data check run by the workflow
+│   ├── data_changed.py             # decides whether a refresh is worth committing (skips timestamp-only runs)
+│   ├── test_data_changed.py        # tests for it
 │   └── create_icons.py             # PWA icon generator
 ├── index.html                      # generated landing page (tile grid of every page)
 ├── all.html                        # generated "All Videos" page (aggregates all sections)
