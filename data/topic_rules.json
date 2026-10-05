@@ -1,0 +1,11 @@
+{
+  "_help": "Tunes the Topics tab without touching code. Edit this file on GitHub (pencil icon) and commit; the site picks it up on the next load. All three lists are optional. Phrases are case-insensitive. Examples are in _examples; copy entries out of it into the real lists.",
+  "ignore_words": [],
+  "ignore_topics": [],
+  "aliases": {},
+  "_examples": {
+    "ignore_words": ["gave", "understand"],
+    "ignore_topics": ["open source", "ai team"],
+    "aliases": { "grok bot": "GrokBot", "chatgpt dots": "Dots" }
+  }
+}

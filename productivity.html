@@ -35,27 +35,31 @@
 <div class="tabbar">
   <button class="tab-btn" data-tab="all">⚡ Videos</button>
   <button class="tab-btn" data-tab="channels">📺 By Channel</button>
+  <button class="tab-btn" data-tab="topics">🔥 Topics</button>
 </div>
 
 <div class="toolbar">
-  <div class="toolbar-group" data-video-only><span class="toolbar-label">Time</span>
+  <div class="toolbar-group" data-tabs="all channels topics"><span class="toolbar-label">Time</span>
     <select id="timeSelect"><option value="1d">1 day</option><option value="3d">3 days</option><option value="7d">7 days</option><option value="30d">30 days</option><option value="90d">90 days</option></select></div>
-  <div class="toolbar-group" data-video-only><span class="toolbar-label">Sort</span>
+  <div class="toolbar-group" data-tabs="all channels"><span class="toolbar-label">Sort</span>
     <select id="sortSelect"><option value="views">👁 Views</option><option value="velocity">⚡ Velocity</option><option value="trending">📊 Trending</option><option value="newest">🕐 Newest</option></select></div>
-  <div class="toolbar-group"><span class="toolbar-label">Layer</span>
+  <div class="toolbar-group" data-tabs="topics"><span class="toolbar-label">Rank by</span>
+    <select id="rankSelect"><option value="rising">🔥 Rising</option><option value="mentions">📊 Most mentioned</option></select></div>
+  <div class="toolbar-group" data-tabs="all channels topics articles"><span class="toolbar-label">Layer</span>
     <select id="layerSelect"><option value="all">All</option><option value="Primary">Primary (official)</option><option value="Practitioner">Practitioner</option><option value="Analysis">Analysis</option></select></div>
-  <div class="toolbar-group" data-video-only><span class="toolbar-label">Language</span>
+  <div class="toolbar-group" data-tabs="all channels topics"><span class="toolbar-label">Language</span>
     <select id="langSelect"><option value="all">All</option><option value="en">English</option><option value="hi">Hindi</option></select></div>
-  <div class="toolbar-group" data-video-only><span class="toolbar-label">Min views</span>
+  <div class="toolbar-group" data-tabs="all channels"><span class="toolbar-label">Min views</span>
     <select id="viewsSelect"><option value="0">Any</option><option value="1000">1K+</option><option value="5000">5K+</option><option value="10000">10K+</option><option value="50000">50K+</option></select></div>
-  <div class="toolbar-group" data-video-only><span class="toolbar-label">Duration</span>
+  <div class="toolbar-group" data-tabs="all channels"><span class="toolbar-label">Duration</span>
     <select id="durationSelect"><option value="all">All</option><option value="over3">Over 3 min</option><option value="3to15">3–15 min</option><option value="15to30">15–30 min</option><option value="30to60">30–60 min</option><option value="long">1 hr+</option></select></div>
-  <input type="search" id="searchInput" placeholder="Search title or channel…">
+  <input type="search" id="searchInput" data-tabs="all channels articles" placeholder="Search title or channel…">
 </div>
 <p class="meta-info" id="metaInfo"></p>
 
 <div class="panel" id="panel-all"></div>
 <div class="panel" id="panel-channels"></div>
+<div class="panel" id="panel-topics"></div>
 <div class="panel" id="panel-articles"></div>
 
 <div class="modal-overlay" id="playerModal">
@@ -70,6 +74,7 @@
 
 <div id="toast"></div>
 <script>window.HUB_PAGE = {"slug": "productivity", "title": "AI for Professionals", "hasArticles": false, "watch": []};</script>
+<script src="assets/topics.js"></script>
 <script src="assets/hub.js"></script>
 </body>
 </html>

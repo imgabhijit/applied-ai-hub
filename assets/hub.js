@@ -24,8 +24,11 @@
     duration: 'all',
     search:   '',
     channel:  null,
+    rank:     'rising',   // Topics tab: 'rising' | 'mentions'
+    topic:    null,       // {label, ids:Set} while the Videos tab is narrowed to one topic
   };
   let videos = [], posts = [], lastUpdated = null;
+  let topicMemo = new Map(), shownTopics = [], byId = new Map(), topicRules = {};
 
   const $ = id => document.getElementById(id);
 
@@ -91,15 +94,19 @@
     }[state.sort] || (v => v.view_count);
     return [...list].sort((a, b) => key(b) - key(a));
   }
+  // Layer / language / section: the filters every tab shares.
+  function inScope(v) {
+    return v.live_broadcast !== 'live' &&
+      (state.layer === 'all' || v.layer === state.layer) &&
+      (state.lang === 'all' || v.language === state.lang) &&
+      (state.section === 'all' || v._section === state.section);
+  }
   function filteredVideos() {
     const since = now() - (TIME_WINDOWS[state.time] || 7 * DAY);
     const q = state.search.toLowerCase();
     return sortVideos(videos.filter(v =>
-      v.timestamp >= since &&
-      v.live_broadcast !== 'live' &&
-      (state.layer === 'all' || v.layer === state.layer) &&
-      (state.lang === 'all' || v.language === state.lang) &&
-      (state.section === 'all' || v._section === state.section) &&
+      v.timestamp >= since && inScope(v) &&
+      (!state.topic || state.topic.ids.has(v.video_id)) &&
       v.view_count >= state.minViews &&
       matchesDuration(v.duration || 0) &&
       (!q || v.title.toLowerCase().includes(q) || v.channel_name.toLowerCase().includes(q))));
@@ -128,9 +135,11 @@
 
   function renderAll() {
     const list = filteredVideos();
-    $('panel-all').innerHTML = list.length
+    const chip = state.topic
+      ? `<div class="topic-chip">Topic: <b>${esc(state.topic.label)}</b><button data-act="clear-topic" aria-label="Clear topic">✕</button></div>` : '';
+    $('panel-all').innerHTML = chip + (list.length
       ? `<p class="section-label">Top ${list.length} videos · ${esc(state.time)}</p>${gridHtml(list, 'allGrid')}`
-      : empty('No videos match', 'Try a wider time window or clear a filter.');
+      : empty('No videos match', 'Try a wider time window or clear a filter.'));
   }
 
   function renderChannels() {
@@ -157,6 +166,49 @@
       : empty('No channel data', 'Try a wider time window.');
   }
 
+  // Topics: what the titles in the current window are about (see assets/topics.js).
+  function renderTopics() {
+    const panel = $('panel-topics');
+    const days = (TIME_WINDOWS[state.time] || 7 * DAY) / DAY;
+    const key = [state.time, state.layer, state.lang, state.section].join('|');
+    let all = topicMemo.get(key), windowCount = 0;
+    const since = now() - days * DAY;
+    const scoped = videos.filter(inScope);
+    const inWindow = scoped.filter(v => v.timestamp >= since);
+    windowCount = inWindow.length;
+    if (!all) {
+      const oldest = scoped.reduce((m, v) => Math.min(m, v.timestamp), now());
+      all = HubTopics.topics(inWindow, scoped, {
+        windowDays: days, vocab: videos,
+        baselineDays: Math.min(90, Math.max(days, Math.ceil((now() - oldest) / DAY))),
+        minChannels: days >= 30 ? 3 : 2, rules: topicRules,
+      });
+      topicMemo.set(key, all);
+    }
+    shownTopics = HubTopics.rank(all, state.rank, 30);
+    const head = `<p class="section-label">Top topics · ${esc(state.time)} · ${windowCount} videos analysed</p>
+      <p class="section-blurb">Phrases that show up in the titles of several different channels. ${
+        state.rank === 'rising' ? '<b>↑ Rising</b> marks phrases far more frequent than in the weeks before. ' : ''}Click a topic to see its videos.</p>`;
+    if (!shownTopics.length) {
+      panel.innerHTML = head + empty('Not enough overlap yet', 'Try a longer time window (7 days or more) or clear a filter.');
+      return;
+    }
+    const maxCh = Math.max(...shownTopics.map(t => t.channels));
+    panel.innerHTML = head + '<div class="topic-list">' + shownTopics.map((t, i) => {
+      const top = t.ids.map(id => byId.get(id)).filter(Boolean).sort((a, b) => b.view_count - a.view_count)[0];
+      return `<div class="topic-row" data-topic="${i}">
+        <span class="topic-rank">${i + 1}</span>
+        <div class="topic-main">
+          <div class="topic-label">${esc(t.label)}${t.isNew ? ' <span class="topic-new">↑ rising</span>' : ''}</div>
+          ${t.variants && t.variants.length ? `<div class="topic-also">also: ${t.variants.map(esc).join(' · ')}</div>` : ''}
+          <div class="topic-bar"><span style="width:${Math.round(100 * t.channels / maxCh)}%"></span></div>
+          ${top ? `<div class="topic-top" data-play="${esc(top.video_id)}" data-ch="${esc(top.channel_name)}">▶ ${esc(top.title)} <i>· ${esc(top.channel_name)} · ${fmtViews(top.view_count)} views</i></div>` : ''}
+        </div>
+        <div class="topic-stats"><b>${t.channels}</b> channels<br><b>${t.videos}</b> videos<br><b>${fmtViews(t.views)}</b> views</div>
+      </div>`;
+    }).join('') + '</div>';
+  }
+
   function renderArticles() {
     if (!PAGE.hasArticles) return;
     const q = state.search.toLowerCase();
@@ -176,6 +228,7 @@
 
   function render() {
     renderAll(); renderChannels(); renderArticles();
+    if (state.tab === 'topics') renderTopics();
     const channels = new Set(videos.map(v => v.channel_id)).size;
     $('metaInfo').textContent = `Refreshed: ${lastUpdated ? fmtAgo(new Date(lastUpdated).getTime() / 1000) : 'never'} | ${videos.length} videos · ${channels} channels`;
   }
@@ -189,9 +242,10 @@
     if (IS_HOME) $('sectionSelect').value = state.section;
     $('viewsSelect').value = String(state.minViews);
     $('durationSelect').value = state.duration;
-    // Video-only filters make no sense on the Articles tab.
-    document.querySelectorAll('[data-video-only]').forEach(el => {
-      el.style.display = state.tab === 'articles' ? 'none' : '';
+    $('rankSelect').value = state.rank;
+    // Each control lists the tabs it applies to (data-tabs).
+    document.querySelectorAll('[data-tabs]').forEach(el => {
+      el.style.display = el.dataset.tabs.split(' ').includes(state.tab) ? '' : 'none';
     });
   }
   function updateUrl() {
@@ -205,7 +259,7 @@
     syncToolbar(); render(); updateUrl();
   }
   function bind(id, key, parse = x => x) {
-    $(id).addEventListener('change', e => { state[key] = parse(e.target.value); state.channel = null; render(); updateUrl(); });
+    $(id).addEventListener('change', e => { state[key] = parse(e.target.value); state.channel = null; state.topic = null; render(); updateUrl(); });
   }
 
   // ── player ────────────────────────────────────────────────────────────────
@@ -236,10 +290,19 @@
     }
     const card = t.closest('.video-card');
     if (card) { openPlayer(card.dataset.id, card.dataset.ch); return; }
+    const play = t.closest('[data-play]');
+    if (play) { openPlayer(play.dataset.play, play.dataset.ch); return; }
+    const row = t.closest('.topic-row');
+    if (row) {
+      const topic = shownTopics[+row.dataset.topic];
+      if (topic) { state.topic = { label: topic.label, ids: new Set(topic.ids) }; state.channel = null; switchTab('all'); }
+      return;
+    }
     const chCard = t.closest('.channel-card');
     if (chCard) { state.channel = chCard.dataset.channel; renderChannels(); return; }
     const act = t.closest('[data-act]');
     if (act && act.dataset.act === 'back') { state.channel = null; renderChannels(); }
+    if (act && act.dataset.act === 'clear-topic') { state.topic = null; render(); }
     if (act && act.dataset.act === 'more') {
       const wrap = act.closest('.show-more-wrap');
       document.querySelectorAll(`#${wrap.dataset.moreFor} .video-card.hidden`).forEach(c => c.classList.remove('hidden'));
@@ -262,17 +325,19 @@
     $('closeBtn').addEventListener('click', closePlayer);
     bind('timeSelect', 'time'); bind('sortSelect', 'sort'); bind('layerSelect', 'layer'); bind('langSelect', 'lang');
     if (IS_HOME) bind('sectionSelect', 'section');
-    bind('viewsSelect', 'minViews', Number); bind('durationSelect', 'duration');
-    $('searchInput').addEventListener('input', e => { state.search = e.target.value.trim(); state.channel = null; render(); });
+    bind('rankSelect', 'rank'); bind('viewsSelect', 'minViews', Number); bind('durationSelect', 'duration');
+    $('searchInput').addEventListener('input', e => { state.search = e.target.value.trim(); state.channel = null; state.topic = null; render(); });
     $('navSelect').addEventListener('change', e => { if (e.target.value) location.href = e.target.value; });
     switchTab(state.tab);
 
     try {
       const res = await fetch('data/videos.json');
       const data = await res.json();
-      videos = collect(data);
+      videos = collect(data); topicMemo = new Map(); byId = new Map(videos.map(v => [v.video_id, v]));
       lastUpdated = data.last_updated;
     } catch { toast('Could not load video data.'); }
+    try { topicRules = await (await fetch('data/topic_rules.json')).json(); topicMemo = new Map(); }
+    catch { /* topic_rules.json is optional */ }
     try {
       const res = await fetch('data/posts.json');
       posts = collect(await res.json()).sort((a, b) => b.timestamp - a.timestamp);

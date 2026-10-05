@@ -79,6 +79,22 @@ GitHub `schedule` (4x/day) -> scripts/fetch.py          -> data/videos.json
 - `manifest.json` and `sw.js` hardcode the `/applied-ai-hub/` base path; keep
   them in sync if the repo is renamed.
 
+## Topics tab
+
+- The logic lives in `assets/topics.js`: pure functions with no DOM access, loaded
+  by the pages as `window.HubTopics` and by Node for `scripts/test_topics.js`. Keep
+  it DOM-free so it stays testable.
+- When topics look wrong, tune the word lists in that file (`STOP` filler,
+  `GENERIC` section words, `COMMON_EXTRA` ordinary words) and check with
+  `node scripts/test_topics.js <section> <days> rising|mentions` on the real
+  data before touching the UI. Do not add per-section hacks in `hub.js`.
+- Tuning that does not need code goes in `data/topic_rules.json` (`ignore_words`,
+  `ignore_topics`, `aliases`); prefer that over editing the word lists. The
+  workflow runs `scripts/check_topics.js` after each refresh as a smoke test; keep
+  it dependency-free (Node standard library only) so it runs in Actions untouched.
+- Each toolbar control in `build_pages.py` lists the tabs it applies to in
+  `data-tabs`; add the new tab name there when adding a tab.
+
 ## Commands
 
 ```bash

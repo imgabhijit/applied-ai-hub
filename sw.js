@@ -1,7 +1,7 @@
 // Bump CACHE_NAME whenever a precached file below changes shape (renamed/added).
 // Section pages are not listed: they are cached as they are visited, so adding a
 // section never needs a change here.
-const CACHE_NAME = 'applied-ai-hub-v1';
+const CACHE_NAME = 'applied-ai-hub-v2';
 const BASE = '/applied-ai-hub/';
 const STATIC_ASSETS = [
   BASE,
@@ -9,6 +9,7 @@ const STATIC_ASSETS = [
   BASE + 'player.html',
   BASE + 'assets/hub.css',
   BASE + 'assets/hub.js',
+  BASE + 'assets/topics.js',
   BASE + 'manifest.json',
   BASE + 'icons/icon-192.png',
   BASE + 'icons/icon-512.png',

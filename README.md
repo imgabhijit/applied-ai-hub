@@ -28,6 +28,29 @@ It runs on **GitHub Pages + GitHub Actions + the YouTube Data API v3** with no b
 
 Every source also has a **layer**: *Primary* (official/first-party), *Analysis*, or *Practitioner*. Each page has a Layer filter, plus time window, sort (views / velocity / trending / newest), language, min views, duration and search. Sections with written sources get an **Articles** tab; sources with no usable RSS feed (Anthropic News, The Batch, and Oracle's blogs, which return 403 to scripts) appear as direct links.
 
+## Topics tab (what's buzzing)
+
+Every page has a **🔥 Topics** tab that reads the titles of the videos in the selected time window (1 day to 90 days) and ranks the phrases they are about, for example "Dots", "Meta Muse", "Sonnet 5.5". It runs in the browser from `data/videos.json`; there is nothing extra to fetch. How [assets/topics.js](assets/topics.js) does it:
+
+1. **Clean** each title: drop emojis, URLs and the channel's own name; split `GPT-6` into `GPT 6`.
+2. **Tokenize** into lowercase words, skipping stopwords and clickbait filler ("insane", "tutorial", "just dropped").
+3. **Build 1-3 word phrases** that do not start or end with a filler word. Word order is ignored, so "Muse from Meta" and "Meta's Muse" are one phrase.
+4. **Count per video and per channel.** A phrase needs 2+ different channels (3+ for single words, and for 30/90-day windows), so one channel's series cannot fake a trend.
+5. **Drop ordinary words.** The code learns which words are plain English (never capitalised mid-sentence, e.g. "price", "understand") from the titles themselves, plus a built-in list.
+6. **Rank.** *Rising* compares the phrase's rate in the window with its rate in the rest of the 90 days, so new buzz beats always-popular words; *Most mentioned* ranks by breadth then volume. For a 90-day window there is no "before" to compare with, so it falls back to mentions.
+7. **Merge variants** ("OpenAI Dots", "ChatGPT Dots" -> "Dots") and show the most-viewed video for each topic. Clicking a topic opens the Videos tab narrowed to it.
+
+It runs entirely in the browser from `data/videos.json`, so it refreshes automatically whenever the GitHub Action refreshes the data. There is no model, API key or package to install.
+
+**Tuning without code.** Edit [data/topic_rules.json](data/topic_rules.json) on GitHub (pencil icon -> commit; the site picks it up on the next load):
+- `ignore_words`: words that may never be a topic ("gave", "understand")
+- `ignore_topics`: phrases to hide ("open source")
+- `aliases`: merge phrases into one topic (`"grok bot": "GrokBot"`)
+
+**Safety check.** After every refresh the workflow runs `node scripts/check_topics.js`, which computes topics for every section at 7 and 30 days and fails the run (red X in the Actions tab) if the Topics tab would break, throw, or come back empty from plenty of videos. It runs after the data commit, so it never blocks a data refresh.
+
+Try it from the terminal: `node scripts/test_topics.js agents 7 rising` (section, days, rising|mentions).
+
 ## How it works
 
 ```
@@ -72,6 +95,7 @@ applied-ai-hub/
 │   ├── fetch.py                    # YouTube fetcher / ranker
 │   ├── fetch_written.py            # RSS/Atom fetcher
 │   ├── build_pages.py              # generates index.html, all.html + the 11 section pages
+│   ├── test_topics.js              # prints top topics from the real data (Node)
 │   └── create_icons.py             # PWA icon generator
 ├── index.html                      # generated landing page (tile grid of every page)
 ├── all.html                        # generated "All Videos" page (aggregates all sections)

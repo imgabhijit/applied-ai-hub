@@ -105,3 +105,29 @@ nav { background: var(--panel); border-bottom: 2px solid var(--accent); padding:
   nav { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); }
   body { padding-bottom: env(safe-area-inset-bottom); }
 }
+
+/* Topics tab */
+.topic-list { display: flex; flex-direction: column; gap: 10px; max-width: 920px; }
+.topic-row { display: flex; gap: 16px; align-items: flex-start; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: border-color 0.2s, transform 0.2s; }
+.topic-row:hover { border-color: var(--accent); transform: translateX(3px); }
+.topic-rank { flex: 0 0 28px; font-size: 1.05rem; font-weight: 700; color: var(--accent); text-align: center; padding-top: 1px; }
+.topic-main { flex: 1; min-width: 0; }
+.topic-label { font-size: 1.02rem; font-weight: 700; color: #fff; }
+.topic-new { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 10px; background: var(--accent); color: #fff; font-size: 0.68rem; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; vertical-align: middle; }
+.topic-also { font-size: 0.76rem; color: #777; margin-top: 3px; }
+.topic-bar { height: 4px; background: var(--line); border-radius: 2px; margin: 9px 0 8px; overflow: hidden; }
+.topic-bar span { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+.topic-top { font-size: 0.8rem; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.topic-top:hover { color: #fff; }
+.topic-top i { color: #666; font-style: normal; }
+.topic-stats { flex: 0 0 auto; text-align: right; font-size: 0.74rem; color: #777; line-height: 1.5; white-space: nowrap; }
+.topic-stats b { color: #ddd; }
+.topic-chip { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 16px; padding: 6px 8px 6px 14px; border: 1px solid var(--accent); border-radius: 20px; font-size: 0.85rem; color: #ccc; }
+.topic-chip b { color: #fff; }
+.topic-chip button { background: var(--line); border: none; color: #ccc; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: 0.75rem; }
+.topic-chip button:hover { background: var(--accent); color: #fff; }
+@media (max-width: 600px) {
+  .topic-row { flex-wrap: wrap; gap: 8px 12px; }
+  .topic-stats { flex: 1 0 100%; text-align: left; padding-left: 40px; }
+  .topic-stats br { display: none; } .topic-stats b + * { margin-left: 2px; }
+}

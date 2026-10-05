@@ -65,3 +65,16 @@ jobs:
           # generated-data conflict, keep this run's newer generated data.
           git pull --rebase -X theirs origin main
           git push
+
+      # Runs after the data is committed, so a topics problem can never block a data
+      # refresh - but it turns the run red so a broken Topics tab does not go unnoticed.
+      # No dependencies: scripts/check_topics.js only uses Node's standard library.
+      - name: Set up Node (for the topics check)
+        if: always()
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Smoke-test Topics tab
+        if: always()
+        run: node scripts/check_topics.js
